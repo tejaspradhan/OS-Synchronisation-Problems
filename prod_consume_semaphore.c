@@ -7,18 +7,18 @@
 
 int buffer[SIZE];
 int count = 0;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-sem_t empty, full;
+// pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+sem_t empty, full, mutex;
 void *produce()
 {
     for (int i = 0; i < 10; i++)
     {
         sem_wait(&empty);
-        pthread_mutex_lock(&mutex);
+        sem_wait(&mutex);
         buffer[count] = count;
         count++;
         printf("Producer produced item  : %d \n", count);
-        pthread_mutex_unlock(&mutex);
+        sem_post(&mutex);
         sem_post(&full);
     }
 }
@@ -29,10 +29,10 @@ void *consume()
     for (int i = 0; i < 10; i++)
     {
         sem_wait(&full);
-        pthread_mutex_lock(&mutex);
+        sem_wait(&mutex);
         printf("Consumer consumed item : %d \n", count);
         count--;
-        pthread_mutex_unlock(&mutex);
+        sem_post(&mutex);
         sem_post(&empty);
     }
 }
@@ -40,13 +40,14 @@ void *consume()
 int main()
 {
     pthread_t producer, consumer;
-    sem_init(&empty, 0, SIZE); // initially everything is empty
+    sem_init(&empty, 0, SIZE);
     sem_init(&full, 0, 0);
+    sem_init(&mutex, 0, 1);
     pthread_create(&producer, NULL, produce, NULL);
     pthread_create(&consumer, NULL, consume, NULL);
     pthread_join(producer, NULL);
     pthread_join(consumer, NULL);
-    pthread_mutex_destroy(&mutex);
+    // pthread_mutex_destroy(&mutex);
     sem_destroy(&empty);
     sem_destroy(&full);
     return 0;
